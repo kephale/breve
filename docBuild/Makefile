@@ -4,7 +4,12 @@
 # DOCBOOK=/usr/share/xml/docbook/stylesheet/nwalsh
 # DOCBOOK=/usr/local/lib/docbook-xsl-1.73.2
 # DOCBOOK=/usr/local/lib/docbook-xsl-1.71.1
+
+# For OS X
 DOCBOOK=/opt/local/share/xsl/docbook-xsl/
+
+# For Linux (works for docbook-xsl from repositories on Debian)
+#DOCBOOK=/usr/share/xml/docbook/stylesheet/docbook-xsl/
 
 #all: html pdf
 all: pdf
@@ -18,7 +23,6 @@ html-clean:
 	rm -rf htmldocs
 
 docBuild/docExtract: docBuild/docExtract.c
-	# g++ chokes here?!
 	$(CC) -o docBuild/docExtract docBuild/docExtract.c
 
 classes: docExtract
