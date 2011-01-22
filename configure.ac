@@ -22,6 +22,20 @@ AC_ARG_ENABLE([python],
 AC_ARG_ENABLE([osxcompat104], 
 		[--enable-osxcompat104	Build on Mac OS X 10.5 to produce 10.4 compatible build], osxcompat104="$enableval")
 
+#
+# Documentation configuration
+#
+#AC_ARG_WITH(DOCBOOK,
+#	[AS_HELP_STRING([--with-docbook],
+#		[support documentation generation @<:@default=check@:>@])],
+#	[DOCBOOK=/opt/local/share/xsl/docbook-xsl/],
+#	[with_docbook_xsl=check])	
+#
+#if test "x$with_docbook_xsl" = xcheck; then
+#   DOCUMENTATION_SUBDIR="documentation"
+#fi
+#AC_CONFIG_SUBDIRS([$DOCUMENTATION_SUBDIR])
+
 PYTHONROOT="/usr"
 
 if test "$prefix" != "NONE"; then
@@ -91,6 +105,8 @@ case ${host_os} in
 		QUICKTIMEFLAGS="-framework QuickTime -framework Carbon"
 		ARCHIVER="tar czf"
 		ARCHIVE_SUFFIX="tar.gz"
+		LDFLAGS="${LDFLAGS} -L/opt/local/lib"
+		CPPFLAGS="${CPPFLAGS} -I/opt/include/lib"
 
 		if test "x$osxcompat104" = "xyes"; then 
 			CPPFLAGS="${CPPFLAGS} -isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.4"
@@ -130,6 +146,9 @@ case ${host_os} in
 		ARCHIVER="tar czf"
 		ARCHIVE_SUFFIX="tar.gz"
 		PLATFORM=${host_os}
+		LDFLAGS="${LDFLAGS} -L/usr/local/lib"
+		CPPFLAGS="${CPPFLAGS} -I/usr/include/lib"
+
 		;;
 esac
 
@@ -229,7 +248,6 @@ if test "x$engine_only" = "x" && test "x$scheme" != "x"; then
 		AC_CHECK_LIB([guile], [gh_eval_string])
 	fi    
 fi
-
 
 #
 # These required system libraries are assumed to require dynamic linking even 
