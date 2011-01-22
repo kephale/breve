@@ -21,6 +21,7 @@
 #ifndef _CAMERA_H
 #define _CAMERA_H
 
+#include <stdio.h>
 #include <string>
 #include <vector>
 #include "vector.h"

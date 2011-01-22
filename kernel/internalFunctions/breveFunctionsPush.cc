@@ -15,7 +15,7 @@ void breveInitPushFunctions( brNamespace *n );
 /*! \addtogroup InternalFunctions */
 #ifdef HAVE_LIBPUSH
 
-#include "pushC.h" /**** MOVE TO push/pushC.h ??? */
+#include "push/pushC.h" /**** MOVE TO push/pushC.h ??? */
 #include "push/Code.h"
 #include "push/Env.h"
 #include "push/Literal.h"
