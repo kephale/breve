@@ -24,11 +24,15 @@ Object : GeneticAlgorithm {
 		individualClass (string).
 		currentPopulation (int).
 		currentIndividual (int).
-		elitismPercent (int).
-		crossoverPercent (int).
-		mutationPercent (int).
-		randomizePercent (int).
-		migrationPercent (int).
+		preserveBest (int).
+
+#		crossoverPercent (int).
+#		mutationPercent (int).
+#		randomizePercent (int).
+#		migrationPercent (int).
+
+		variers (hash).
+
 		migrationHosts (list).
 		migrationServer (object).
 		migrationPort (int).
@@ -54,11 +58,19 @@ Object : GeneticAlgorithm {
 		testDuration = 20.
 		populationSize = 30.
 		currentIndividual = 0.
-		elitismPercent = 0.
-		mutationPercent = 75.
-		migrationPercent = 0.
-		crossoverPercent = 0.
-		randomizePercent = 5.
+		preserveBest = 0.
+
+		#mutationPercent = 75.
+		#migrationPercent = 0.
+		#crossoverPercent = 10.
+		#randomizePercent = 5.
+
+		variers{ "mutate-individual" } = 0.75.
+		variers{ "crossover-individual" } = 0.0.
+		variers{ "copy-individual" } = 0.0.
+		variers{ "randomize-individual" } = 0.0.
+		variers{ "migrate-individual" } = 0.0.
+
 		tournamentSize = 5.
 		spatialRadius = 0.
 		migrationPort = GENETIC_ALGORITHM_SERVER_PORT.
@@ -68,6 +80,13 @@ Object : GeneticAlgorithm {
 		self prepare-for-generation number 0.
 
 	+ section "Getting and Setting Parameters for the Genetic Algorithm"
+
+	+ to enable-preserve-best:
+	  % Always keep the best individual from the previous generations?
+	  preserveBest = 1.
+	
+	+ to disable-preserve-best:
+	  preserveBest = 0.
 
 	+ to set-fitness-test-duration to duration (double):
 		% Sets the duration of a single fitness test.  Specifies that a single
@@ -105,47 +124,38 @@ Object : GeneticAlgorithm {
 		% can be set with METHOD(set-population-size).
 		return populationSize.
 
-	+ to set-elitism-percent to percent (int):
-	     	% Sets the number of highest scoring individuals that are retained.
-		% The default value is 0%
-		elitismPercent = percent.
-
-	+ to get-elitism-percent:
-		% Returns the percent of highest scoring indivuals that are retained
-		% The default value is 0%
-		return elitismPercent.	 
-
 	+ to set-mutation-percent to percent (int): 
 		% Sets the probability of mutation to percent%.  This specifies the 
 		% approximate percentage of agents to be generated through mutation.
-		% The default value is 75%.
-		mutationPercent = percent.
+		% The default value is 75%. 
+		variers{"mutate-individual"} = percent / 100.0.
 
 	+ to get-mutation-percent:
 		% Returns the percent probability of mutation during reproduction.
 		% The default value is 75%.
-		return mutationPercent.
+		%return mutationPercent.
+		return variers{"mutate-individual"} * 100.
 
 	+ to set-randomize-percent to percent (int): 
 		% Sets the probability of creating a new random individual to percent%.  
 		% The default value is 5%.
-		randomizePercent = percent.
+		variers{"randomize-individual"} = percent / 100.0.
 
 	+ to get-randomize-percent:
 		% Returns the percent probability of a new random individual during reproduction.
 		% The default value is 5%.
-		return randomizePercent.
+		return variers{"randomize-individual"} * 100.
 
 	+ to set-crossover-percent to percent (int):
 		% Sets the probability of crossover to percent%.  This specifies the 
 		% approximate percentage of agents to be generated through crossover
 		% during reproduction.  Crossover is not enabled by default, so the 
 		% default value is 0%.
-		crossoverPercent = percent.
+		variers{"crossover-individual"} = percent / 100.0.
 
 	+ to get-crossover-percent:
 		% Returns the probability of crossover during reproduction.
-		return crossoverPercent.
+		return variers{"crossover-individual"} * 100.
 	
 	+ to set-migration-port to port (int):
 		% Sets the port on which migration should occur.  The default value of 
@@ -170,10 +180,10 @@ Object : GeneticAlgorithm {
 			}
 			transferOut = new GAIndividualTransporter.
 			
-			migrationPercent = percent.
+			variers{"migrate-individual"} = percent / 100.0.
 			
 	+ to get-migration-percent:
-		return migrationPercent.
+		return variers{"migrate-individual"}.
 		
 	+ to set-migration-hosts to hosts (list):
 		% Sets a list of migration hosts for this object.  This should be a list of lists 
@@ -258,7 +268,7 @@ Object : GeneticAlgorithm {
 		return populations{ currentPopulation }{ currentIndividual }.
 
 	+ to iterate:
-		if | populations { 0 } | == 0: self generate-population.
+		if | populations { 0 } | == 0: self generate-population.		
 
 	+ section "Methods Used Internally by the Genetic Algorithm"
 
@@ -283,10 +293,21 @@ Object : GeneticAlgorithm {
 			self add-dependency on newI.
 		}
 
-			if seed: populations{ 0 }{ 0 } copy from seed.
+		self set-ga-in-individuals population 0.
+		self set-ga-in-individuals population 1.
+
+		if seed: populations{ 0 }{ 0 } copy from seed.
 		
 		currentIndividual = -1.
 		self switch-individual.
+
+	- to set-ga-in-individuals population n (int):
+	  i (int).
+
+
+	  for i = 0, i < | populations{ n } |, i++: {		    
+	    populations{n}{i} set-ga to self.
+	  }
 
 	+ to switch-individual: 
 		% Switches to the next indivisual
@@ -310,7 +331,11 @@ Object : GeneticAlgorithm {
 		self start-fitness-test of populations{ currentPopulation }{ currentIndividual }.
 
 		# self unschedule method-call "switch-individual".
-		self schedule method-call "switch-individual" at-time (controller get-time) + testDuration.
+
+		# Allow the fitness test to schedule this call
+		if testDuration > 0: {
+		   self schedule method-call "switch-individual" at-time (controller get-time) + testDuration.		
+		}
 
 	+ to compare-individuals ind-a a (object) int-b b (object):
 	     	% Used to sort the population. We sort in descending order.
@@ -318,22 +343,56 @@ Object : GeneticAlgorithm {
 		else if (a get-fitness) < (b get-fitness): return 1.
 		else: return 0.
 
+	+ to mutate-individual at i (int): 
+	        populations{ !currentPopulation }{ i } copy from (self tournament-select for-index i).
+		populations{ !currentPopulation }{ i } mutate.	     	
+
+	+ to crossover-individual at i (int):
+	        populations{ !currentPopulation }{ i } crossover 
+			     from-parent1 (self tournament-select for-index i) from-parent2 (self tournament-select for-index i).
+
+	+ to copy-individual at i (int):
+	        #ind (int).
+		#ind = (self tournament-select for-index i).
+		#populations{ !currentPopulation }{ i } copy from ind.
+		populations{ !currentPopulation }{ i } copy from populations{ currentPopulation }{ i }.
+
+	+ to randomize-individual at i (int):
+	     	populations{ !currentPopulation }{ i } randomize.	
+
+	+ to migrate-individual at i (int):
+	        ind (int).
+		if transferIn: {
+		        print "Immigrants coming in.".
+			if (transferIn get-individual number i):
+				ind = (transferIn get-individual number i).
+			else:
+				ind = (self tournament-select for-index i).					
+		}
+		else:
+		{
+			ind = (self tournament-select for-index i).
+		}
+
+		populations{ !currentPopulation }{ i } copy from ind.				
+
 	- to reproduce:
-		r, i, best, n, elite (int).
+		r, i, best, n, v (int).
 		totalFitness, fitness (double).
 		ind (object).
 		recipientHost (string).
 		recipientPort (int).
+		currentBest (object).
+		key (string).
 
+		# Initialize next population
 		if | populations{ !currentPopulation } | != populationSize: {
 			free populations{ !currentPopulation }.
 			populations{ !currentPopulation } = populationSize new individualClass.
 		}
 
+		# Find best and other population-wide checks
 		best = 0.
-
-		if elitismPercent != 0: sort populations{ currentPopulation } with compare-individuals.
-
 		for i = 0, i < | populations{ currentPopulation } |, i++: {
 			fitness = (populations{ currentPopulation }{ i } get-fitness).
 
@@ -350,53 +409,29 @@ Object : GeneticAlgorithm {
 			with-best-individual populations{ currentPopulation }{ best }
 			with-average-fitness totalFitness.
 
-		elite = min(populationSize * (elitismPercent/100.0), populationSize).
-
 		# Crossover should use fitness proportional roulette.
 
-		for i = elite, i < populationSize, i++: {
-			r = random[100].
+		for i = 0, i < | populations{ currentPopulation } |, i++: {		    
+		    if i == best && preserveBest: {
+		      self call-method named "copy-individual" with-arguments {i}.
+		    } else: {
+		      r = random[1.0].
 
-			if r < mutationPercent: {
-				populations{ !currentPopulation }{ i } copy from (self tournament-select for-index i).
-				populations{ !currentPopulation }{ i } mutate.
-			} else if r < (mutationPercent + crossoverPercent): {
-				populations{ !currentPopulation }{ i } crossover 
-					from-parent1 (self tournament-select for-index i) from-parent2 (self tournament-select for-index i).
-			} else if r < (mutationPercent + crossoverPercent + randomizePercent): {
-				populations{ !currentPopulation }{ i } randomize.
-			} else if r < (mutationPercent + crossoverPercent + randomizePercent + migrationPercent): {
-
-				# migration...
-				if transferIn: {
-				        print "Immigrants coming in.".
-					if (transferIn get-individual number i):
-						ind = (transferIn get-individual number i).
-					else:
-						ind = (self tournament-select for-index i).					
-				}
-				else:
-				{
-					ind = (self tournament-select for-index i).
-				}
-
-				populations{ !currentPopulation }{ i } copy from ind.				
-			} else {
-				ind = (self tournament-select for-index i).
-				populations{ !currentPopulation }{ i } copy from ind.
-
-				# print "Copying individual with fitness ", (ind get-fitness).
-			}
+		      foreach key in keys( variers ): {
+		        if r < variers{ key }: 	   self call-method named key with-arguments {i}.
+			else:  		       	   r -= variers{ key }.		  
+		      }
+		    }
 		}
-		
 
+		# Migration after reproduction
 		if | migrationHosts | != 0: {
 		        if !transferOut:
 		          transferOut = new GAIndividualTransporter. 
 			transferOut clear.
 
 
-			for n=0, n<populationSize * (migrationPercent / 100.0), n++:
+			for n=0, n<populationSize * (variers{"migrate-individual"} / 100.0), n++:
 				transferOut add individual (self tournament-select for-index n).
 
 			print "Migrating individuals...".
@@ -404,8 +439,11 @@ Object : GeneticAlgorithm {
 			recipientPort = migrationHosts{ random[ | migrationHosts | - 1 ] }{1}.
 			transferOut send-over-network to recipientHost on recipientPort.
 		}
+
+		currentBest = populations{ currentPopulation }{ best }.		
 		
 		currentPopulation = !currentPopulation.
+		self set-ga-in-individuals population currentPopulation.
 		currentIndividual = 0.
 
 		if generationLimit && generation >= generationLimit: controller end-simulation.
@@ -524,6 +562,13 @@ Object : GeneticAlgorithmIndividual {
 
 	+ variables:
 		fitness (double).
+		ga (object).
+
+	+ to get-ga:
+	  return ga.
+
+	+ to set-ga to newGA (object):
+	  ga = newGA.
 
 	+ to init:
 		# self enable-auto-free.
@@ -582,4 +627,23 @@ Object : GAIndividualTransporter {
 	- to get-individual number n (int):
 		if n < | individuals | : return individuals{n}.
 
+}
+
+GeneticAlgorithm : LPSGeneticAlgorithm {
+        + variables:
+	        % Parameters
+	        numberLevels (int).
+		numberCalibrationGens (int).
+		numberGensExch (int).
+		numberGensUpdate (int).
+
+		levelThresholds (list).
+		attribute (string).
+
+	+ to init:
+	        numberLevels = 2.	
+		numberCalibrationGens = 5.	
+		numberGensExch = 2.
+		numberGensUpdate = 1.
+		attribute = "fitness".# = AHFS "age". = ALPS "none". = Islands
 }
