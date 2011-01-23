@@ -181,6 +181,19 @@ int brITan( brEval args[], brEval *target, brInstance *i ) {
 }
 
 /*!
+	\brief Gives the hyperbolic tangent of its input.
+
+	double tanh(double).
+*/
+
+int brITanh( brEval args[], brEval *target, brInstance *i ) {
+
+	target->set( tanh( BRDOUBLE( &args[0] ) ) );
+
+	return EC_OK;
+}
+
+/*!
 	\brief Gives the arc-sine of its input.
 
 	double asin(double).
@@ -399,6 +412,7 @@ void breveInitMathFunctions( brNamespace *n ) {
 	brNewBreveCall( n, "sin", brISin, AT_DOUBLE, AT_DOUBLE, 0 );
 	brNewBreveCall( n, "cos", brICos, AT_DOUBLE, AT_DOUBLE, 0 );
 	brNewBreveCall( n, "tan", brITan, AT_DOUBLE, AT_DOUBLE, 0 );
+	brNewBreveCall( n, "tanh", brITanh, AT_DOUBLE, AT_DOUBLE, 0 );
 	brNewBreveCall( n, "asin", brIAsin, AT_DOUBLE, AT_DOUBLE, 0 );
 	brNewBreveCall( n, "acos", brIAcos, AT_DOUBLE, AT_DOUBLE, 0 );
 	brNewBreveCall( n, "exp", brIExp, AT_DOUBLE, AT_DOUBLE, 0 );
