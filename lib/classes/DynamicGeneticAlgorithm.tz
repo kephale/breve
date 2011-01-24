@@ -2,8 +2,6 @@
 @use NetworkServer.
 @use GeneticAlgorithm.
 
-@define GENETIC_ALGORITHM_SERVER_PORT 59142.
-
 GeneticAlgorithm : DynamicGeneticAlgorithm {
 	% The GeneticAlgorithm class allows you to set up a genetic algorithm, 
 	% in which strategies can be evolved to solve a wide variety of problems.
