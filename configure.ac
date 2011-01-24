@@ -106,7 +106,7 @@ case ${host_os} in
 		ARCHIVER="tar czf"
 		ARCHIVE_SUFFIX="tar.gz"
 		LDFLAGS="${LDFLAGS} -L/opt/local/lib"
-		CPPFLAGS="${CPPFLAGS} -I/opt/include/include"
+		CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
 
 		if test "x$osxcompat104" = "xyes"; then 
 			CPPFLAGS="${CPPFLAGS} -isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.4"
