@@ -221,6 +221,20 @@ int brILinkSetForce( brEval args[], brEval *target, brInstance *i ) {
 }
 
 /**
+        \brief Sets the maximum angular speed of a link.
+
+	linkSetMaxAngularSpeed(double). Use this to prevent ODE errors from fast joints.
+*/
+
+int brILinkSetMaxAngularSpeed( brEval args[], brEval *target, brInstance *i ) {
+        slLink *link = BRLINKPOINTER( &args[0] );
+
+	link->setMaxAngularSpeed( BRDOUBLE( &args[1] ) );
+
+	return EC_OK;
+}
+
+/**
 	\brief Gets the multibody object associated with the current link.
 
 	object linkGetMultibody(slLink pointer).
@@ -444,6 +458,7 @@ void breveInitLinkFunctions( brNamespace *n ) {
 	brNewBreveCall( n, "linkGetVelocity", brILinkGetVelocity, AT_VECTOR, AT_POINTER, 0 );
 	brNewBreveCall( n, "linkGetMultibody", brILinkGetMultibody, AT_INSTANCE, AT_POINTER, 0 );
 	brNewBreveCall( n, "linkSetTexture", brILinkSetTexture, AT_NULL, AT_POINTER, AT_INT, 0 );
+	brNewBreveCall( n, "linkSetMaxAngularSpeed", brILinkSetMaxAngularSpeed, AT_NULL, AT_POINTER, AT_DOUBLE, 0);
 
 	brNewBreveCall( n, "vectorFromLinkPerspective", brIVectorFromLinkPerspective, AT_VECTOR, AT_POINTER, AT_VECTOR, 0 );
 

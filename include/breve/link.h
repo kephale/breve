@@ -80,7 +80,7 @@ class slLink: public slWorldObject {
 		void disableSimulation();
 		void enableSimulation();
 		void updatePosition();
-		void updatePositionFromODE();
+		void updatePositionFromODE();		
 
 		void setForce(slVector *f);
 		void setTorque(slVector *t);
@@ -90,6 +90,8 @@ class slLink: public slWorldObject {
 
 		void getAcceleration(slVector *linear, slVector *rotational);
 		void setAcceleration(slVector *linear, slVector *rotational);
+
+		void setMaxAngularSpeed(double speed);
 
 		slJoint *link(slWorld *world, slLink *parent, int jointType, slVector *normal, slVector *plinkPoint, slVector *clinkPoint, double rotation[3][3], bool useCurrentRotation );
 

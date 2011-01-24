@@ -662,6 +662,11 @@ void slLink::nullMultibodiesForConnectedLinks() {
 	_multibody = NULL;
 }
 
+void slLink::setMaxAngularSpeed( double speed ) {
+        dBodySetMaxAngularSpeed( _odeBodyID, speed );
+}
+
+
 /*!
 	\brief Converts a breve matrix to an ODE matrix.
 
