@@ -620,7 +620,15 @@ Abstract : Control (aka Controls) [version 2.3] {
 	+ to iterate:
 		result (float).
 
-		if watchObject: self set-camera-target to (watchObject get-location).
+		if watchObject: {
+		   	if (watchObject is-a class "MultiBody"): {
+			        if (watchObject get-root): {
+				        self set-camera-target to (watchObject get-location).
+				}
+			} else: {
+			        self set-camera-target to (watchObject get-location).
+			}
+		}
 
 		# we might be doing a "bullet-time" pan
 
