@@ -112,6 +112,12 @@ Real : Mobile (aka Mobiles) [version 2.2] {
 
 		linkSetAcceleration(realWorldPointer, newAcceleration).
 
+	+ to set-max-angular-speed to newMax (float):
+	        % Sets the maximum angular speed of this object. This can
+		% be used to avoid out of control objects.
+
+		linkSetMaxAngularSpeed(realWorldPointer, newMax).
+
 	+ to set-rotational-acceleration to newAcceleration (vector):
 		% Sets the rotational acceleration of this object to 
 		% newAcceleration.  This method has no effect if physical 
