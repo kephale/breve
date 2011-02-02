@@ -379,6 +379,33 @@ int brIFileEOF( brEval args[], brEval *target, brInstance *i ) {
 	return EC_OK;
 }
 
+/*!
+	\brief Checks a file for exists.
+*/
+
+int brIFileExists( brEval args[], brEval *target, brInstance *i ) {
+	char *file;
+	int exists = 0;
+	FILE *f;
+
+	if ( !( file = brFindFile( i->engine, BRSTRING( &args[0] ), NULL ) ) ) {
+
+		target->set( 0 );
+
+		return EC_OK;
+	}
+
+	if ( ( f = fopen( file, "r" ) ) )  {
+	  exists = 1;
+	  fclose(f);
+	}
+
+	target->set( exists );
+
+	return EC_OK;
+}
+
+
 /*@}*/
 
 void breveInitFileFunctions( brNamespace *n ) {
@@ -394,4 +421,5 @@ void breveInitFileFunctions( brNamespace *n ) {
 	brNewBreveCall( n, "writeData", brIWriteData, AT_NULL, AT_POINTER, AT_DATA, 0 );
 	brNewBreveCall( n, "closeFile", brICloseFile, AT_NULL, AT_POINTER, 0 );
 	brNewBreveCall( n, "fileEOF", brIFileEOF, AT_INT, AT_POINTER, 0 );
+	brNewBreveCall( n, "fileExists", brIFileExists, AT_INT, AT_STRING, 0 );
 }

@@ -13,6 +13,12 @@ Abstract : File (aka Files) [version 2.0] {
 	+ variables:
 		filePointer (pointer).
 
+  + section "Meta-file ops"
+        + to exists name fileName (string):
+	        % Returns whether a file exists. 
+
+		return fileExists(fileName).
+
   + section "Checking For the End of a File"
 
 	+ to is-end-of-file:
