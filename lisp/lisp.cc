@@ -312,6 +312,7 @@ int brLispCanLoad( brFrontendCallbackData *inData, const char *inExtension ) {
 	// check the file extension
 
 	if( !strcasecmp( inExtension, "l" ) 
+	        || !strcasecmp( inExtension, "lsp" ) 
 		|| !strcasecmp( inExtension, "lisp" ) 
 		|| !strcasecmp( inExtension, "brevel" ) )
 			return 1;
@@ -388,7 +389,5 @@ int brLispInit( brEngine *breveEngine ) {
 
 	return EC_OK;
 }
-
-
 
 #endif
