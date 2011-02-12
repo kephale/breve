@@ -25,6 +25,7 @@
 
 #include <ecl/ecl.h>
 #include <signal.h>
+#include <iostream>
 
 //
 // TODO: ECL garbage collection is completely undocumented at present!
@@ -71,8 +72,8 @@ brEvalListHead *brLispToBreveListConvert( cl_object inObject ) {
 
 	brEval eval;
 
-	while( type_of( inObject ) == t_cons ) {
-		brLispObjectToEval( inObject -> cons.car, &eval );
+	while( type_of( inObject ) == t_list ) {
+	  brLispObjectToEval( inObject -> cons.car, &eval );// In the case of an error from the cons check object.h ECL_SMALL_CONS
 		
 		if( brEvalListAppend( list, &eval ) != EC_OK ) {
 			delete list;
@@ -109,7 +110,7 @@ cl_object brLispFromBreveListConvert( brEvalListHead *inList, int inStartIndex =
 
 inline int brLispObjectToEval( cl_object inObject, brEval *outEval ) {
 	switch( type_of( inObject ) ) {
-		case t_cons:
+		case t_list:
 			outEval -> set( brLispToBreveListConvert( inObject ) );
 			break;
 
@@ -311,10 +312,10 @@ int brLispIsSubclass( brObjectType *inObjectType,  brObjectCallbackData *inClass
 int brLispCanLoad( brFrontendCallbackData *inData, const char *inExtension ) {
 	// check the file extension
 
-	if( !strcasecmp( inExtension, "l" ) 
-	        || !strcasecmp( inExtension, "lsp" ) 
-		|| !strcasecmp( inExtension, "lisp" ) 
-		|| !strcasecmp( inExtension, "brevel" ) )
+	if( strcasecmp( inExtension, "l" ) 
+	        || strcasecmp( inExtension, "lsp" ) 
+		|| strcasecmp( inExtension, "lisp" ) 
+		|| strcasecmp( inExtension, "brevel" ) )
 			return 1;
 
 	return 0;
@@ -325,6 +326,7 @@ int brLispCanLoad( brFrontendCallbackData *inData, const char *inExtension ) {
  */
 
 int brLispLoad( brEngine *inEngine, brFrontendCallbackData *inData, const char *inFilename, const char *inFiletext ) {
+
 	std::string command = "( PROGN ";
 	command += inFiletext;
 	command += " ) ";
