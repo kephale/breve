@@ -15,6 +15,7 @@ void breveInitPushFunctions( brNamespace *n );
 /*! \addtogroup InternalFunctions */
 #ifdef HAVE_LIBPUSH
 
+#include <iostream>
 #include "push/pushC.h" /**** MOVE TO push/pushC.h ??? */
 #include "push/Code.h"
 #include "push/Env.h"
@@ -228,6 +229,26 @@ int breveFunctionPushParse( brEval arguments[], brEval *result, brInstance *inst
 
 	try {
 		result->set( pushParse( string ) );
+	} catch ( std::runtime_error &e ) {
+		result->set( pushParse( "()" ) );
+	}
+
+	PushCode *cc = BRPOINTER( result );
+	pushlang::Code code = *(pushlang::Code*)cc;
+
+	return EC_OK;
+}
+
+/*!
+	\brief A breve API function wrapper for the C-function \ref parse.
+
+	See the documentation for \ref parse in push-evolve for more details.
+*/
+
+int breveFunctionPushParseStdin( brEval arguments[], brEval *result, brInstance *instance ) {
+
+	try {
+	  result->set( (void*) new pushlang::Code( pushlang::parse( std::cin ) ) );
 	} catch ( std::runtime_error &e ) {
 		result->set( pushParse( "()" ) );
 	}
@@ -1044,6 +1065,7 @@ void breveInitPushFunctions( brNamespace *n ) {
 	brNewBreveCall( n, "pushEnvironmentGetListLimit", breveFunctionPushEnvironmentGetListLimit, AT_INT, AT_POINTER, 0 );
 	brNewBreveCall( n, "pushEnvironmentGetRandomPointLimit", breveFunctionPushEnvironmentGetRandomPointLimit, AT_INT, AT_POINTER, 0 );
 	brNewBreveCall( n, "pushParse", breveFunctionPushParse, AT_POINTER, AT_STRING, 0 );
+	brNewBreveCall( n, "pushParseStdin", breveFunctionPushParseStdin, AT_POINTER, 0 );
 	brNewBreveCall( n, "pushCodeGetString", breveFunctionPushCodeGetString, AT_STRING, AT_POINTER, 0 );
 	brNewBreveCall( n, "pushCodeGetEvalList", breveFunctionPushCodeGetEvalList, AT_LIST, AT_POINTER, 0 );
 	brNewBreveCall( n, "pushCodeFree", breveFunctionPushCodeFree, AT_NULL, AT_POINTER, 0 );
