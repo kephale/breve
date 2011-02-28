@@ -108,7 +108,7 @@ Matrix : Matrix2D (aka Matrices2D) {
 		matrix2DMulElements(matrixPointer, (otherMatrix get-matrix-pointer)).
 
 	+ to transform with-matrix transformation (Matrix2D object) with-result result (Matrix2D object):
-		% Transforms this OBJECT(Vector) with the OBJECT(Matrix2D) matrix, storing the
+		% Transforms this OBJECT(Matrix2D) with the OBJECT(Matrix2D) matrix, storing the
 		% output in result.
 
 		matrix2DMatrixMultiply( (transformation get-matrix-pointer), matrixPointer, (result get-matrix-pointer) ).
