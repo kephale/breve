@@ -1,0 +1,614 @@
+#
+# KomosinskiWalker.tz
+# Kyle Harrington <kyleh@cs.brandeis.edu>
+#
+# The Komosinski style walker uses an additional parameter for 
+# each evolved variable to decay values over a set of limbs.
+#
+# Derived from (via SuperWalkerGA.tz): 
+# SuperWalker.tz
+# jon klein <jk@spiderland.org>
+# 
+# This demo is an enhanced version of the Walker demo in which 
+# 1) the limbs are not bounded to move symmetrically and 2) limb
+# lengths are evolved along with walking behaviors.
+# 
+# Both of these changes make the search space much larger meaning
+# that evolution goes much more slowly than for the Walker.  It is
+# best to let this simulation over night in order to observe real
+# walking behaviors.
+#
+
+@use PhysicalControl.
+@use Shape.
+@use Link.
+@use Stationary.
+@use MultiBody.
+@use GeneticAlgorithm.
+@use File.
+@use URL.
+
+@define DATA_LOGGING	0.
+@define TESTTIME	20.
+@define SPEED_K		10.
+
+Controller Walker.
+
+PhysicalControl : Walker {
+	+ variables:
+		wigglyThing (object).
+
+		flag (object).
+
+		startlocation (vector).
+		running (int).
+
+		floor (object).
+
+		ga (object).
+
+		currentGenome (object).
+
+	+ to init:
+		number (int).
+		item (object).
+		f (object).	  
+
+		self enable-lighting.
+		self enable-smooth-drawing.
+
+		self enable-fast-physics.
+		self set-fast-physics-iterations to 3.
+
+		flag = new Mobile.
+		flag disable-physics.
+		flag set-bitmap-image to (new Image load from "images/star.png").
+		flag set-color to (1, 1, 0).
+		flag set-label to "Start".
+		flag disable-shadows.
+
+		# Create the floor for the critter to walk on.
+
+		floor = new Floor.
+		floor catch-shadows.
+		floor set-eT to .9.
+		floor set-mu to 0.7.
+
+		self set-background-texture-image to (new Image load from "images/clouds.png").
+
+		self enable-reflections.
+		
+		self set-background-color to (.4, .6, .9).
+
+		ga = (controller dearchive-xml file "breveKomosinskiWalker.xml").
+
+		if !ga: {
+		   	if DATA_LOGGING: {
+		  	   f = new File.
+
+			   f open-for-writing with-file "breveKomosinskiWalker.tree".#Truncate the file
+			   f close.
+
+		   	   f open-for-writing with-file "breveKomosinskiWalker.generations".#Truncate the file
+			   f close.
+
+			}
+
+			print "Making new GA".
+			ga = new SuperWalkerGA.
+
+			ga set-generation-limit to 1000.
+			ga set-fitness-test-duration to 45.
+			ga set-individual-class to "SuperWalkerGAIndividual".
+			ga set-tournament-size to 13.
+			ga set-population-size to 25.
+			ga set-crossover-percent to 30.
+			ga set-mutation-percent to 30.
+		}		
+
+		self add-dependency on ga.
+
+		# set up the menus...
+
+		self add-menu-separator.
+
+		# schedule the first driver change and we're ready to go.
+
+		# self schedule method-call "change-drivers" at-time (self get-time) + TESTTIME.
+
+		self display-current-driver.
+
+	+ to display-current-driver:
+		gen, total, index (int).
+		bestDistance (float).
+
+		if ga: {
+			gen = (ga get-generation) + 1.
+			bestDistance = (ga get-best-fitness).
+
+			total = (ga get-population-size).
+			index = (ga get-current-individual-index) + 1.
+		}
+
+		self set-display-text to "Generation: $gen ($index/$total)"at-x -.95 at-y -.75 number 1.
+		self set-display-text to "Best distance: $bestDistance" at-x -.95 at-y -.85 number 2.		
+
+	+ to get-generation:
+		return (ga get-generation).
+
+	+ to iterate:
+		t (vector).
+		dist (float).
+		link (object).
+
+		n (int).
+
+		foreach link in all Links: {
+			t += (link get-location).
+		}
+
+		if |all Links|: t /= |all Links|.
+
+		self point-camera at t.
+
+		dist = ( self get-current-critter-fitness ).
+
+		if running: {
+			self set-display-text to "Distance traveled: $dist" at-x -.95 at-y -.95.					
+
+			while n < 8: {
+			      wigglyThing set-joint-velocity number n to SPEED_K * (currentGenome calculate-torque number n at (self get-time)).
+			      n+=1.
+			}
+		}
+
+		self pivot-camera x 0.0 y 0.0002.
+
+		super iterate.
+
+	+ to get-current-critter-fitness:
+		link (object).
+		mindist (float).
+
+		if | all Links | == 0:
+			return 0.0.
+                
+		mindist = 10000.
+                
+		foreach link in all WalkerLinks: {
+			if | ( link get-location ) - link{ "_startLocation" } | < mindist:
+				mindist = | ( link get-location ) - link{ "_startLocation" } |.
+		}
+                
+		return mindist.
+
+	+ to setup-test with i (object):
+		l (object).
+		low (vector).
+		lowest (double).
+
+		foreach l in (all Links): free (l get-shape).
+
+		free all Links.
+		free all Joints.
+
+		if wigglyThing: 
+			free wigglyThing.
+
+		wigglyThing = new Creature.
+		wigglyThing init-with individual i.
+		wigglyThing move to (0, 3, 0).		
+		#wigglyThing disable-self-collisions.
+
+		currentGenome = i.
+
+		self add-dependency on wigglyThing.
+
+		self display-current-driver.
+
+		self schedule method-call "find-start" at-time (self get-time) + 5.0.
+
+		running = 0.
+
+	+ to find-start:
+		link (object).
+
+		running = 1.
+
+		startlocation = (0, 0, 0).
+
+		foreach link in all WalkerLinks: {
+			link set-start-location.
+			startlocation += (link get-location).
+		}
+
+		if |all Links|: startlocation /= |all Links|.
+		flag move to startlocation - (0, startlocation::y - 2, 0).
+
+
+}
+
+GeneticAlgorithm : SuperWalkerGA {
+	+ variables:
+		genome (object).
+		h (hash).
+
+	+ to init:
+		h{ 10 } = ( 1, 2, 3 ).
+
+	+ to start-fitness-test of o (object):
+	     	newOffset (vector).
+
+		newOffset = (-20, 0.15, -20).
+
+		if |newOffset| < 20: newOffset = 20 * newOffset/|newOffset|.
+		controller pan-camera-offset by newOffset steps 600.
+
+		controller setup-test with o.
+
+	+ to end-fitness-test of o (object):
+	     	f (object).
+		childString, parentString, writeString (string).
+		fitness (float).
+		generation (int).
+
+		loc (object).
+		s (string).
+
+	     	o set-fitness to (controller get-current-critter-fitness).
+		if isnan((o get-fitness)): o set-fitness to 0.
+		#print "fitness of $o: ", (o get-fitness).
+		#if (self get-current-individual-index) % ((self get-population-size)/20) == 0: print (self get-current-individual-index).
+		
+		self archive-as-xml file "breveKomosinskiWalker.xml".
+
+		if DATA_LOGGING: {
+		   f = new File.
+
+		   f open-for-appending with-file "breveKomosinskiWalker.tree".
+
+		   childString = (o get-string).
+		   parentString = (o get-parent-string).
+		   fitness = (o get-fitness).
+		   generation = (controller get-generation).
+
+		   writeString = "(($generation) ($childString) ($parentString) ($fitness))".
+
+		   f write-line text writeString.
+
+		   f close.
+		 }
+		 
+		 print "Fitness: ", (o get-fitness).
+		 loc = new URL.		 
+
+		 loc put put-data "Supatest" to "http://localhost:8017".
+		 
+		 s = (loc get url "http://localhost:8017").
+		 print s.
+		 
+
+	+ to prepare-for-generation number n (int):
+	     	f (object).
+		generation (int).
+		bestFitness (float).
+
+	     	if n > 0 && DATA_LOGGING: {
+		   f = new File.
+		   f open-for-appending with-file "breveKomosinskiWalker.generations".
+
+		   generation = (controller get-generation).
+		   bestFitness = (self get-best-fitness).
+
+		   f write-line text "($generation $bestFitness)".
+
+		   f close.
+		}	     	
+}
+
+GeneticAlgorithmIndividual : SuperWalkerGAIndividual {
+	+ variables:
+		waveCompression (float).
+		phaseShifts (list).
+		ampShifts (list).
+		limbLengths (list).
+		decays (list).
+		parentStringA (string).	
+		parentStringB (string).
+
+	+ to copy from otherIndividual (object):
+	     	waveCompression = otherIndividual{ "waveCompression" }.
+		phaseShifts = otherIndividual{ "phaseShifts" }.
+		ampShifts = otherIndividual{ "ampShifts" }.
+		limbLengths = otherIndividual{ "limbLengths" }.
+		decays = otherIndividual{ "decays" }.
+
+		parentStringA = (otherIndividual get-string).
+		parentStringB = (otherIndividual get-string).
+
+	+ to get-parent-string:
+		return "($parentStringA) ($parentStringB)".
+
+	+ to get-string:
+	        n (int).
+		s (string).
+		ps, as, ll, dy (float).		
+		
+		s = "(SWGA ".
+
+		for n = 0, n < 4, n++: {
+		      ps = phaseShifts{ n }.
+		      as = ampShifts{ n }.
+		      ll = limbLengths{ n }.		      
+		      s = "$s ($ps $as $ll)".
+		}
+
+		for n = 0, n < | decays |, n++: {
+		      dy = decays{ n }.
+		      s = "$s $dy".
+		}		
+		s = "$s $waveCompression)".
+
+		return s.
+
+	+ to init: 
+		self randomize.
+
+	+ to randomize:
+		n (int).
+		
+		for n=0, n<4, n++: {
+			phaseShifts{ n } = random[6.3] - 3.15.
+			ampShifts{ n }   = random[1.0] - .5.
+			limbLengths{ n } = random[2.0] + .5.
+		}
+
+		decays = { 0, 0 }.
+		for n = 0, n < | decays |, n++: {
+		      	decays{ n } = random[2.0] - 1.0.
+		}
+
+		waveCompression = random[5.0] - 2.5.
+
+		parentStringA = "SWGARANDOM".
+		parentStringB = "SWGARANDOM".
+				
+	+ to calculate-torque number jointNum (int) at time (float):
+	     	frequency (float).
+		theseDecays (list).
+		n (int).
+		# calculates the torque for a certain joint number.		
+
+		# Get the sign of this joint
+		if ( jointNum >= 2 && jointNum < 4 ) || ( jointNum >= 6 && jointNum < 8 ): {
+		   frequency = -0.5.
+		} else: {
+		   frequency = 0.5.
+		}
+
+		# Find decays
+		theseDecays = decays.
+		if jointNum >= 4: {
+		   for n = 0, n < | decays |, n++: decays{ n } *= decays{ n }.		   
+		   jointNum -= 4.
+		}
+
+		# There is an issue with using time here as opposed to something that is based on the lifetime of the creature.
+		return frequency * sin(waveCompression * ( (self get-age) + theseDecays{ 0 } * phaseShifts{ jointNum }) ) - ( theseDecays{ 1 } * ampShifts{ jointNum } ).
+
+	+ to get-limb-lengths:
+		return limbLengths.
+
+	+ to get-amp-shifts:
+		return ampShifts.
+
+	+ to get-phase-shifts:
+		return phaseShifts.
+		
+	+ to get-limb-length number n (int):
+		return limbLengths{ n }.
+
+	+ to mutate:
+		n (int).
+
+		# we need to decide which of the elements in this genome to mutate
+
+		n = random[13 + | decays |].
+
+		if n < 4: ampShifts{ n } = random[2.0] - 1.0.
+		else if n < 8: phaseShifts{ n - 4 } = random[6.3] - 3.15.
+		else if n < 12: limbLengths{ n - 8 } = random[2.0] + .5.
+		else if n == 12: waveCompression = random[5.0] - 2.5.
+		else: decays{ n - 13 } = random[2.0] - 1.0.
+
+		#print "mutated item $n of $self".
+
+	+ to crossover from-parent1 p1 (object) from-parent2 p2 (object):
+		self crossover-data genome-list phaseShifts from-parent-1 ( p1 get-phase-shifts ) from-parent-2 ( p2 get-phase-shifts ).
+		self crossover-data genome-list ampShifts   from-parent-1 ( p1 get-amp-shifts )   from-parent-2 ( p2 get-amp-shifts ).
+		self crossover-data genome-list limbLengths from-parent-1 ( p1 get-limb-lengths ) from-parent-2 ( p2 get-limb-lengths ).
+		self crossover-data genome-list decays from-parent-1 ( p1 get-limb-lengths ) from-parent-2 ( p2 get-limb-lengths ).
+
+		if random[ 1 ]: waveCompression = p1{ "waveCompression" }.
+		else:	     	waveCompression = p2{ "waveCompression" }.
+
+		parentStringA = (p1 get-string).
+		parentStringB = (p2 get-string).
+
+	+ to crossover-data genome-list l (list) from-parent-1 p1 (list) from-parent-2 p2 (list):
+		n, crossoverPoint (int).
+		tmp (list).
+	
+		if random[ 1 ]: {
+			tmp = p2.
+			p2 = p1.
+			p1 = tmp.
+		}
+		
+		crossoverPoint = random[ | l | - 1 ].
+
+		for n = 0, n < | l |, n++: {
+			if n < crossoverPoint:
+				l{ n } = p1{ n }.
+			else
+				l{ n } = p2{ n }.
+		}
+
+}
+
+MultiBody : Creature {
+	+ variables:
+		bodyLink (object).
+		links (list).
+		joints (list).
+		linkShape, lowerLinkShape, bodyShape (object).
+
+	+ to get-root:
+		return bodyLink.
+
+	+ to init-with individual g (object):
+		x, y (float).
+		lowerLimbSize, upperLimbSize (vector).
+		lowerLimbLinkPoint, upperLimbLinkPoint (vector).
+		counter (int).
+
+		self add-menu named "Send to Center" for-method "center".
+		
+		# we want the limb volume to be constant at 25, but the dimensions can change.
+
+		y = (g get-limb-length number 0).
+		x = sqrt(.25/y).
+		x = sqrt(.25/y).
+
+		lowerLimbSize = (x, y, x).
+		lowerLimbLinkPoint = (0, y/2, 0).
+		
+		y = (g get-limb-length number 1).
+		x = sqrt(.16/y).
+		x = sqrt(.16/y).
+
+		upperLimbSize = (x, y, x).
+		upperLimbLinkPoint = (0, y/2, 0).
+
+		lowerLinkShape = (new Cube init-with size lowerLimbSize).
+		linkShape = (new Cube init-with size upperLimbSize).
+		bodyShape = (new Cube init-with size (4, 3, .4)).
+		bodyShape set-density to 0.5.
+
+		counter = 0.
+
+		links = 8 new WalkerLinks.
+		joints = 8 new RevoluteJoints.
+
+		links{0} set-shape to linkShape.
+		links{2} set-shape to linkShape.
+		links{4} set-shape to linkShape.
+		links{6} set-shape to linkShape.
+		links{1} set-shape to lowerLinkShape.
+		links{3} set-shape to lowerLinkShape.
+		links{5} set-shape to lowerLinkShape.
+		links{7} set-shape to lowerLinkShape.
+
+		links set-color to random[(1.0, 1.0, 1.0)].
+
+		bodyLink = new Link.
+		bodyLink set-shape to bodyShape.		
+
+		self set-root to bodyLink.
+
+		joints{0} link with-normal (0, 0, 1) 
+				with-parent-point (2.0, -1.5, 0)
+				with-child-point upperLimbLinkPoint
+				to-child links{0}
+				parent bodyLink.
+
+		joints{1} link with-normal (1, 0, 0) 
+				with-parent-point -upperLimbLinkPoint
+				with-child-point lowerLimbLinkPoint
+				to-child links{1}
+				parent links{0}.
+
+		joints{4} link with-normal (0, 0, 1) 
+				with-parent-point (-2.0, -1.5, 0)
+				with-child-point upperLimbLinkPoint
+				to-child links{4}
+				parent bodyLink.
+
+		joints{5} link with-normal (1, 0, 0) 
+				with-parent-point -upperLimbLinkPoint
+				with-child-point lowerLimbLinkPoint
+				to-child links{5}
+				parent links{4}.
+
+		joints{2} link with-normal (0, 0, 1) 
+				with-parent-point (2.0, 1.5, 0)
+				with-child-point -upperLimbLinkPoint
+				to-child links{2}
+				parent bodyLink .
+
+		joints{3} link with-normal (1, 0, 0) 
+				with-parent-point upperLimbLinkPoint
+				with-child-point -lowerLimbLinkPoint
+				to-child links{3}
+				parent links{2}.
+
+		joints{6} link with-normal (0, 0, 1) 
+				with-parent-point (-2.0, 1.5, 0)
+				with-child-point -upperLimbLinkPoint
+				to-child links{6}
+				parent bodyLink.
+
+		joints{7} link with-normal (1, 0, 0) 
+				with-parent-point upperLimbLinkPoint
+				with-child-point -lowerLimbLinkPoint
+				to-child links{7}
+				parent links{6}. 
+
+		# rotate the creature and move it to above the origin.
+		
+		self rotate around-axis (1, 0, 0) by 1.57.
+
+		joints set-double-spring with-strength 200 with-max .6 with-min -.6.
+		joints set-strength-limit to 250.
+
+		joints set-cfm to 0.01.
+		controller set-cfm to 0.01.
+
+		self enable-self-collisions.
+
+	# to center the object, we set the X and Z components to 0, but not
+	# the Y, otherwise we would push the walker into the ground
+
+	+ to center:
+		currentLocation (vector).
+
+		currentLocation = (self get-location).
+		self move to (0, currentLocation::y, 0).
+
+	# The following four method allow external objects to manipulate 
+	# the torque values of the links.
+
+	+ to set-joint-velocity number jointNum (int) to value (float):
+		joints{jointNum} set-joint-velocity to value.
+
+	+ to destroy:
+		free links.
+		free joints.
+		free bodyLink.
+		free linkShape.
+		free lowerLinkShape.
+		free bodyShape.
+
+		super destroy.
+}
+
+Link : WalkerLink (aka WalkerLinks) {
+     + variables:
+       _startLocation (vector).
+
+     + to init:
+       self set-mu to 300.0.
+
+     + to set-start-location:
+       _startLocation = (self get-location).
+}

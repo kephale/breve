@@ -1,0 +1,991 @@
+# SuperDuperWalker: A system to support experiments on the evolution of locomotion.
+# Adapted from SuperWalker, by Jon Klein.
+# Adaptations by Kyle Harrington and Lee Spector, 2004.
+# Contact: lspector@hampshire.edu.
+#
+# This system differs from SuperWalker primarly in the following ways:
+# - Many more attributes of the agents are under evolutionary control.
+# - A graphical user interface (Mac OS X only) allows non-programmer
+#   users to configure and run experiments.
+#
+# To graph data choose "Save Log File..." from the File menu, 
+# then Open in a spreadsheet/graphing program.
+#
+
+# ORIGINAL SUPERWALKER COMMENT:
+# This demo is an enhanced version of the Walker demo in which 
+# 1) the limbs are not bounded to move symmetrically and 2) limb
+# lengths are evolved along with walking behaviors.
+# 
+# Both of these changes make the search space much larger meaning
+# that evolution goes much more slowly than for the Walker.  It is
+# best to let this simulation over night in order to observe real
+# walking behaviors.
+#
+
+# ORIGINAL WALKER COMMENT: 
+# Walker is an attempt to evolve locomotion behavior for a simple 
+# creature using a genetic algorithm.  THIS DEMO MAY REQUIRE AT
+# LEAST 30 MINUTES BEFORE WALKING BEHAVIORS ARE OBSERVED.  
+# It may be best to run this demo overnight.  Additionally, it 
+# is possible that no evolution will occur during the course of 
+# a simulation, so if you don't see results after an hour or two, 
+# start the simulation over again so that a new random population 
+# is used.  Remember that the behaviors are evolved starting with 
+# completely random individuals.
+#
+# The algorithm can be described as thirty monkeys attempting to learn 
+# to drive a bus--they take turns one at a time, breeding the best 
+# individuals together to replace the worst individuals.
+#
+# We place the physical creature in the world and then attempt to evolve
+# individuals (non-physical objects in this simulation) which will control
+# the physical creature.  
+#
+# The algorithm is described in the steps below:
+#   1) create a number of random individuals
+#   2) pick four individuals at random
+#   3) let each individual control the body and record how far it moves
+#   4) sort the four best individuals based on which could go the furthest
+#   5) breed the best two individuals, create two offspring which will 
+#      replace the two worst individuals.
+#   6) return to step 2 and repeat.
+#
+# The creatures quickly learn to move by dragging the body along the 
+# ground and after longer simulations, realistic "walking" has been
+# observed.
+#
+
+
+@nib_file "SuperDuperInterface".
+
+@use PhysicalControl.
+@use Shape.
+@use Genome.
+@use Link.
+@use Stationary.
+@use MultiBody.
+
+@define SPEED_K    20.
+
+Controller Walker.
+
+PhysicalControl : Walker {
+    + variables:
+        seats, monkeys (list).
+
+        currentSeat (int).
+
+        wigglyThing (object).
+        runs (int).
+
+        # the following are flags that can be controlled by the user
+        # via the simulation menu
+
+        locked (int).
+
+        lockMenu (object).
+        totalMonkeys (int).
+        driverTime (float).
+        starttime (float).
+        runtime (float).
+
+        cloudTexture (int).
+        run (int).
+        running (int).
+        fitness (float).
+
+        maxLimbs (int).  
+        maxSegments (int).
+        maxWidth (int).
+        maxLength (int).
+        mwaveCompression (int).
+        mphaseShifts (int).
+        mampShifts (int).
+        mlimbLengths (int).
+        mnumLimbs (int).
+        mnumSegments (int).
+        mwidth (int).
+        mlength (int).
+        mlimbPoints (int).
+        verboseoutput (int).
+        mutationrate (float).
+
+    + to catch-interface-id-100 with-string s (string):
+        totalMonkeys = s.
+        self set-interface-item with-id 500 to-string "$totalMonkeys".
+
+    + to catch-interface-id-101 with-string s (string):
+        inttime (int).
+        driverTime = s.
+        inttime = driverTime.
+        self set-interface-item with-id 501 to-string "$inttime".
+
+    + to catch-interface-id-102 with-string s (string):
+        maxLimbs = s.  
+        self set-interface-item with-id 502 to-string "$maxLimbs".
+
+    + to catch-interface-id-103 with-string s (string):
+        maxSegments = s.
+        self set-interface-item with-id 503 to-string "$maxSegments".
+
+    + to catch-interface-id-104 with-string s (string):
+        maxWidth = s.
+        self set-interface-item with-id 504 to-string "$maxWidth".
+
+    + to catch-interface-id-105 with-string s (string):
+        maxLength = s.
+        self set-interface-item with-id 505 to-string "$maxLength".
+        
+    + to catch-interface-id-666 with-string s (string):
+        mutationrate = s.
+        self set-interface-item with-id 667 to-string "$mutationrate".
+
+    + to catch-interface-id-200 with-string s (string):
+        mwaveCompression = s.
+
+    + to catch-interface-id-201 with-string s (string):
+        mphaseShifts = s.
+
+    + to catch-interface-id-202 with-string s (string):
+        mampShifts = s.
+
+    + to catch-interface-id-203 with-string s (string):
+        mlimbLengths = s.
+
+    + to catch-interface-id-204 with-string s (string):
+        mnumLimbs = s.
+
+    + to catch-interface-id-205 with-string s (string):
+        mnumSegments = s.
+
+    + to catch-interface-id-206 with-string s (string):
+        mwidth = s.
+
+    + to catch-interface-id-207 with-string s (string):
+        mlength = s.
+
+    + to catch-interface-id-208 with-string s (string):
+        mlimbPoints = s.
+
+    + to catch-interface-id-300 with-string s (string):
+        verboseoutput = s.
+
+    + to catch-interface-id-400 with-string s (string):
+        run = s.
+
+    + to get-maxlimbs:
+        return maxLimbs.  
+
+    + to get-maxsegments:
+        return maxSegments.
+
+    + to get-maxwidth:
+        return maxWidth.
+
+    + to get-maxlength:
+        return maxLength.
+
+    + to get-mwaveCompression:
+        return mwaveCompression.
+
+    + to get-mphaseShifts:
+        return mphaseShifts.
+
+    + to get-mampShifts:
+        return mampShifts.
+
+    + to get-mlimbLengths:
+        return mlimbLengths.
+
+    + to get-mnumLimbs:
+        return mnumLimbs.
+
+    + to get-mnumSegments:
+        return mnumSegments.
+
+    + to get-mwidth:
+        return mwidth.
+
+    + to get-mlength:
+        return mlength.
+
+    + to get-mlimbPoints:
+        return mlimbPoints.
+
+    + to get-verboseoutput:
+        return verboseoutput.
+        
+    + to get-mutationrate:
+        return mutationrate.
+
+    + to init:
+        floorShape, centerShape (object).
+        floor, center (object).
+
+        runs = 1.
+        self set-interface-item with-id 700 to-string "$runs".
+        run = 0.
+        running = 0.
+        
+        # DEFAULT PARAMETER VALUES, supplied to variables AND GUI elements
+
+        totalMonkeys = 8.
+        self set-interface-item with-id 100 to-string "8".
+        self set-interface-item with-id 500 to-string "8".
+
+        driverTime = 6.0.
+        self set-interface-item with-id 101 to-string "6".
+        self set-interface-item with-id 501 to-string "6".
+
+        maxLimbs = 4.
+        self set-interface-item with-id 102 to-string "4".
+        self set-interface-item with-id 502 to-string "4".
+
+        maxSegments = 4.
+        self set-interface-item with-id 103 to-string "4".
+        self set-interface-item with-id 503 to-string "4".
+
+        maxWidth = 3.0.
+        self set-interface-item with-id 104 to-string "3.0".
+        self set-interface-item with-id 504 to-string "3.0".
+
+        maxLength = 3.0.
+        self set-interface-item with-id 105 to-string "3.0".
+        self set-interface-item with-id 505 to-string "3.0".
+        
+        mutationrate = 0.2.
+        self set-interface-item with-id 666 to-string "0.2".
+        self set-interface-item with-id 667 to-string "0.2".
+
+        #Mutation Flags
+        mwaveCompression = 1.
+        mphaseShifts = 1.
+        mampShifts = 1.
+        mlimbLengths = 1.
+        mnumLimbs = 1.
+        mnumSegments = 1.
+        mwidth = 1.
+        mlength = 1.
+        mlimbPoints = 1.
+        
+        self enable-lighting.
+        self enable-smooth-drawing.
+
+        # Create the floor for the critter to walk on.
+
+        floorShape = (new Shape init-with-cube size (1000, 2, 1000)).
+        floor = new Stationary.
+
+        floor register with-shape floorShape at-location (0, 0, 0).
+        floor catch-shadows.
+        
+        centerShape = (new Shape init-with-sphere radius 0.2).
+        center = new Stationary.
+        center register with-shape centerShape at-location (0, 1, 0).
+        center set-color to (0, 0, 0).
+
+        cloudTexture = (self load-image from "images/clouds.png").
+        self set-background-texture to cloudTexture.
+
+        self enable-shadows.
+        self enable-reflections.
+
+        self set-background-color to (.4, .6, .9).        
+        print "If verbose output is enabled then the output is:".
+        print "Width,Length,NumLimbs,NumSegments,(Phase Shifts),(Amp Shifts),(Limb Lengths),(Limb Points),Genome ID,Past Evolution(or N/A if none),Fitness".
+        print "Otherwise the output is:".
+        print "Width,Length,NumLimbs,NumSegments,Fitness".
+
+    - to re-init:
+
+        number (int).
+        item (object).
+        locked = 0.
+
+
+        # The "Monkeys" are the individuals that will control the Creature.
+        # Create the Monkeys and assign them numbers.
+
+        starttime = (self get-time).
+
+        monkeys = totalMonkeys new Monkeys.
+
+        foreach item in monkeys: {
+            (item set-number to number).
+            number += 1.
+        }
+
+
+        self pick-drivers.
+
+        # set up the menus...
+
+        lockMenu = (self add-menu named "Lock Driver" for-method "toggle-driver-lock").
+
+        self add-menu-separator.
+
+        self add-menu named "Save Current Genome" for-method "save-current-genome".
+        self add-menu named "Load Into Current Genome" for-method "load-into-current-genome".
+
+        # schedule the first driver change and we're ready to go.
+
+        self schedule method-call "change-drivers" at-time (self get-time) + driverTime.
+
+        self display-current-driver.
+
+        # Create the Creature.
+
+        wigglyThing = new Creature.
+        wigglyThing init-with genome (seats{0} get-genome).
+        wigglyThing move to (0, 3, 0).
+        self offset-camera by (-17, 17, 17).
+        self watch item wigglyThing.
+        running = 1.
+
+    + to display-current-driver:
+        current (object).
+
+        current = seats{currentSeat}.
+
+        self set-display-text to "Driver #$currentSeat" at-x -.95 at-y -.9.
+
+    + to iterate:
+
+        if run: {
+            self re-init.
+            run = 0.
+        }
+        if running: {
+            seats{currentSeat} control robot wigglyThing at-time (self get-time).
+            fitness = |(wigglyThing get-location)|.
+            self set-interface-item with-id 600 to-string "$fitness".
+            runtime = ((self get-time) - starttime).
+            self set-interface-item with-id 800 to-string "$runtime".
+            super iterate.
+        }
+        
+
+
+    + to pick-drivers:
+        # pick 4 new drivers at random.  we do this by sorting the 
+        # list randomly and picking the first 4 items.
+
+        sort monkeys with random-sort.
+
+        seats{0} = monkeys{0}.
+        seats{1} = monkeys{1}.
+        seats{2} = monkeys{2}.
+        seats{3} = monkeys{3}.
+
+        currentSeat = 0.
+
+    + to random-sort objectA a (object) objectB b (object):
+        avoid-warning (object). # a hack to avoid warnings about not using a or b
+        avoid-warning = a.
+        avoid-warning = b.
+        return random[2] - 1.
+
+    + to save-drivers:
+        driver (object).
+        n (int).
+
+        foreach driver in monkeys: {
+            monkeys{n} = ((driver get-genome) save-as-xml file "driver$n.xml").
+            n++.
+        }
+
+    + to load-drivers:
+        n (int).
+
+        for n=0,n<15,n++: {
+            ((monkeys{n} get-genome) load-from-xml file "driver$n.xml").
+        }
+
+        self pick-drivers.
+        print monkeys{currentSeat}.
+
+    + to change-drivers:
+        newDriver (int).
+        newOffset (vector).
+        report (string).
+
+        # if they have locked the current driver, do nothing.
+
+        if locked: return.
+
+        # pick a new camera angle and pan...
+
+        newOffset = random[(30, 6, 30)] + (-15, 1, -15).
+        if |newOffset| < 15: newOffset = 20 * newOffset/|newOffset|.
+        #self bullet-pan-camera-offset by newOffset steps 40.
+        self pan-camera-offset by newOffset steps 40.
+
+        # we change the drivers every time a monkey is finished it's 
+        # turn.  if we have seen the last monkey, breed them together.
+
+        seats{currentSeat} set-distance to (|(wigglyThing get-location)::x| + |(wigglyThing get-location)::z|).
+
+        report = ((seats{currentSeat} get-genome) report).
+        fitness = (seats{currentSeat} get-distance).
+        report = "$report,$fitness".
+        print report.
+        self set-interface-item with-id 601 to-string "$fitness".
+        runs++.
+        self set-interface-item with-id 700 to-string "$runs".
+
+        currentSeat += 1.
+
+        if currentSeat > 3: {
+            self breed-new-monkeys.
+            self pick-drivers.
+        }
+
+        newDriver = (seats{currentSeat} get-number).
+
+        if wigglyThing: {
+            free wigglyThing.
+        }
+
+        wigglyThing = new Creature.
+        wigglyThing init-with genome (seats{currentSeat} get-genome).
+        wigglyThing move to (0, 3, 0).
+        self watch item wigglyThing.
+
+        # schedule a new driver change in 20 seconds.
+
+        self schedule method-call "change-drivers" at-time (self get-time) + driverTime.
+        self display-current-driver.
+
+    + to breed-new-monkeys:
+
+        sort seats with compare-distance.
+
+        # breed the two best twice, replacing the two worst.
+
+        seats{0} breed with seats{1} to-child seats{2}.
+        seats{1} breed with seats{0} to-child seats{3}.
+
+        # give each individual a mutation
+
+        (seats{2} get-genome) mutate.
+        (seats{3} get-genome) mutate.
+
+    + to compare-distance of a (object) with b (object):
+        result (float).
+
+        result = (b get-distance) - (a get-distance).
+        return result.
+
+        # the following methods are accessed from the simulation menu.
+
+    + to toggle-driver-lock:
+        if locked == 1: {
+            locked = 0.
+            wigglyThing center.
+            self schedule method-call "change-drivers" at-time (self get-time) + driverTime.
+            lockMenu uncheck.
+        } else {
+            locked = 1.
+            lockMenu check.
+        }
+
+    + to save-current-genome:
+        (seats{currentSeat} get-genome) save-with-dialog.
+
+    + to load-into-current-genome:
+        (seats{currentSeat} get-genome) load-with-dialog.
+}
+
+Object : Monkeys {
+    + variables:
+        distanceTraveled (float).
+        genome (object).
+
+        number (int).
+
+    + to set-number to n (int):
+        number = n.
+
+    + to get-number:
+        return number.
+
+    + to init:
+        genome = new MonkeyGenome.
+        genome randomize.
+
+        self add-dependency on genome.
+
+    + to get-genome:
+        return genome.
+
+    + to breed with otherMonkey (object) to-child child (object):
+        (child get-genome) crossover from-parent-1 (otherMonkey get-genome) from-parent-2 (self get-genome).
+
+    + to control robot theRobot (object) at-time t (float):
+        n (int).
+
+        while n < ((genome get-numLimbs) * (genome get-numSegments)): {
+            theRobot set-joint-velocity number n to SPEED_K * (genome calculate-torque number n at t).
+            n+=1.
+        }
+
+    + to set-distance to value (float):
+        distanceTraveled = value.
+
+    + to get-distance:
+        return distanceTraveled.
+}
+
+Genome : MonkeyGenome {
+    + variables:
+        #Mutatable
+        waveCompression (float).
+        phaseShifts (list).
+        ampShifts (list).
+        limbLengths (list).
+        numLimbs (int).
+        numSegments (int).
+        limbPoints (list).
+        width (float).
+        length (float).
+        #Static
+        maxLimbs (int).
+        maxSegments (int).
+        maxWidth (int).
+        maxLength (int).
+        #information
+        pastevolutions (list).     
+
+    + to set-maxLimbs to value (int):
+        maxLimbs = value.
+
+    + to set-maxSegments to value (int):
+        maxSegments = value.
+
+    + to set-maxWidth to value (float):
+        maxWidth = value.
+
+    + to set-maxLength to value (float):
+        maxLength = value.
+
+    + to randomize:
+        n (int).
+
+        maxLimbs = (controller get-maxlimbs).
+        maxSegments = (controller get-maxsegments).   
+        maxWidth = (controller get-maxwidth).
+        maxLength = (controller get-maxlength).     
+        #numLimbs = random[maxLimbs - 1] + 1.
+        numLimbs = 4.
+        numSegments = random[maxSegments - 2] + 2.
+
+        width = random[maxWidth - 1.0] + 1.0.
+        length = random[maxLength - 1.0] + 1.0.
+
+        for n=0, n<(numLimbs*numSegments), n++: {
+            push (random[6.3] - 3.15) onto phaseShifts.
+            push (random[1.0] - .5) onto ampShifts.
+            push (random[2.0] + .5) onto limbLengths.
+            push (self get-random-point-on-edge) onto limbPoints.
+        }
+
+        waveCompression = random[5.0] - 2.5.
+
+    + to report:
+        n (int).
+        s (string).
+        temp (double).
+        temp2 (vector).
+        s = "$width,$length,$numLimbs,$numSegments".
+
+        if (controller get-verboseoutput) == 1 : {
+            s = "$s,(".
+            for n=0, n<|phaseShifts|, n++ : {
+                temp = phaseShifts{n}.
+                s = "$s,$temp".
+            }
+            s = "$s),(".
+            for n=0, n<|ampShifts|, n++ : {
+                temp = ampShifts{n}.
+                s = "$s,$temp".
+            }
+            s = "$s),(".
+            for n=0, n<|limbLengths|, n++ : {
+                temp = ampShifts{n}.
+                s = "$s,$temp".
+            }
+            s = "$s),(".
+            for n=0, n<|limbPoints|, n++ : {
+                temp2 = limbPoints{n}.
+                s = "$s,$temp2".
+            }
+            s = "$s)".
+            
+            s = "$s,$self".
+            
+            if |pastevolutions| > 0 : {
+               #temp3 = pop pastevolutions.
+               #s = "$s,$temp3".
+               s = "$s,$pastevolutions".
+            }
+            else s = "$s,N/A".
+        }
+
+        return s.
+
+
+    + to calculate-torque number jointNum (int) at time (float):
+        # calculates the torque for a certain joint number.
+        #if ( |phaseShifts| <= jointNum ) || ( |ampShifts| <= jointNum ) : 
+        #self report.
+        return 0.5 * sin(waveCompression * (time + phaseShifts{jointNum}) - (ampShifts{jointNum})).
+
+    + to get-random-point-on-edge:
+        point (vector).
+        randomside (int).
+
+        randomside = random[3].
+
+        if randomside==0 : point = (width/2, ( random[length] - length/2 ), 0).
+        if randomside==1 : point = (-1 * width/2, ( random[length] - length/2 ), 0).
+        if randomside==2 : point = ((random[width] - width/2), length/2, 0).
+        if randomside==3 : point = ((random[width] - width/2), -1 * length/2, 0).
+
+        #print "Width: $width Length: $length Point: $point Sidechosen: $randomside".
+        return point.
+
+    + to get-limbPoint number n (int):
+        self verify-update-self.
+        return limbPoints{n}.
+
+    + to get-limb-length number n (int):
+        self verify-update-self.
+        return limbLengths{n}.
+
+    + to get-width:
+        return width.
+
+    + to get-length:
+        return length.
+
+    + to get-numLimbs:
+        return numLimbs.
+
+    + to get-numSegments:
+        return numSegments.
+
+    + to reset-width from oldwidth (float) to newwidth (float):
+        n (int).
+        t (vector).
+
+        for n=0, n<|limbPoints|, n++: {
+            t = limbPoints{n}.
+            if t::x == oldwidth/2 :
+            t::x = newwidth/2.
+            if (-1 * t::x) == oldwidth/2 :
+            t::x == -1 * newwidth/2.
+            limbPoints{n} = t.
+        }
+
+    + to reset-length from oldlength (float) to newlength (float):
+        n (int).
+        t (vector).
+
+        for n=0, n<|limbPoints|, n++: {
+            t = limbPoints{n}.
+            if t::y == oldlength/2 :
+            t::y = newlength/2.
+            if -1 * t::y == oldlength/2 :
+            t::y = -1 * newlength/2.
+            limbPoints{n} = t.
+        }
+
+    + to reset-from-numlimbs from oldnumlimbs (int) to newnumlimbs (int):
+        n,m (int).
+        #print "Resetting limbs from $oldnumlimbs to $newnumlimbs".
+        n = oldnumlimbs - newnumlimbs.
+
+        if n > 0: {
+            while ( n > 0 ) : {
+                for m=0, m<numSegments, m++: {
+                    pop ampShifts.
+                    pop phaseShifts.
+                    pop limbLengths.
+                }
+                pop limbPoints.
+                n--.
+            }
+        }
+        if n < 0: {
+            n = -1 * n.
+            while ( n >= 0 ) : {
+                for m=0, m < numSegments, m++: {
+                    push random[2.0] - 1.0 onto ampShifts.
+                    push random[6.3] - 3.15 onto phaseShifts.
+                    push random[2.0] + .5 onto limbLengths.
+                }
+                push (self get-random-point-on-edge) onto limbPoints.
+                n--.
+            }
+        }    
+        numLimbs = newnumlimbs.
+
+
+    + to reset-from-numsegments from oldnumsegments (int) to newnumsegments (int):
+        n,m (int).
+        #print "Resetting segments from $oldnumsegments to $newnumsegments".
+        n = oldnumsegments - newnumsegments.
+
+        if n > 0: {
+            while ( n > 0 ) : {
+                for m=0, m<numSegments, m++: {
+                    pop ampShifts.
+                    pop phaseShifts.
+                    pop limbLengths.
+                }
+                pop limbPoints.
+                n--.
+            }
+        }
+        if n < 0: {
+            n = -1 * n.
+            while ( n >= 0 ) : {
+                for m=0, m < numSegments, m++: {
+                    push random[2.0] - 1.0 onto ampShifts.
+                    push random[6.3] - 3.15 onto phaseShifts.
+                    push random[2.0] + .5 onto limbLengths.
+                }
+                push (self get-random-point-on-edge) onto limbPoints.
+                n--.
+            }
+        }    
+        numSegments = newnumsegments.
+
+    + to verify-update-self:
+        change (int).
+        temp (list).
+
+        change = numLimbs * numSegments.
+        if change == 1 : numSegments = 2.
+
+        temp = limbLengths.
+        if change != |temp| : {
+            while change < |temp| :    pop temp.
+            while change > |temp| : push random[2.0] + .5 onto temp.
+        }
+        limbLengths = temp.
+        temp = phaseShifts.
+        if change != |temp| : {
+            while change < |temp| :    pop temp.
+            while change > |temp| : push random[6.3] - 3.15 onto temp.
+        }
+        phaseShifts = temp.
+        temp = ampShifts.
+        if change != |temp| : {
+            while change < |temp| :    pop temp.
+            while change > |temp| : push random[2.0] - 1.0 onto temp.
+        }
+        ampShifts = temp.
+
+        change = numLimbs.
+        temp = limbPoints.
+        if change != |temp| : {
+            while change < |temp| :    pop temp.
+            while change > |temp| : push (self get-random-point-on-edge) onto temp.
+        }
+        limbPoints = temp.            
+
+
+    + to mutate:
+        n (int).
+        oldwidth (float).
+        oldlength (float).
+        oldnumlimbs (int).
+        oldnumsegments (int).
+        mutationrate (float).
+        
+        mutationrate = (controller get-mutationrate).
+
+
+        #print "Mutate start".
+
+
+        #print "mutating item $n of $self".
+
+        self verify-update-self.
+        #self report.
+        if (controller get-mlimbPoints) && (random[1.0] < mutationrate) : {
+            n = random[|limbPoints| - 1].
+            limbPoints{n} = (self get-random-point-on-edge).
+            push "limbpoints" onto pastevolutions.
+        }
+        if (controller get-mwidth) && (random[1.0] < mutationrate) : {
+            oldwidth = width.
+            width = (oldwidth + (random[2.0] - 1.0)).
+            if width < 1.0: width = 1.0.
+            else if width > 4.0: width = 4.0.
+            self reset-width from oldwidth to width.
+            push "width from $oldwidth to $width" onto pastevolutions.
+        }
+        if (controller get-mlength) && (random[1.0] < mutationrate) : {
+            oldlength = length.
+            length = (oldlength + (random[2.0] - 1.0)).
+            if length < 1.0: length = 1.0.
+            else if length > 4.0: length = 4.0.
+            self reset-length from oldlength to length.
+            push "length from $oldlength to $length" onto pastevolutions.
+        }
+        if (controller get-mnumLimbs) && (random[1.0] < mutationrate) : {
+            oldnumlimbs = numLimbs.
+            numLimbs = (oldnumlimbs + (random[2] - 1)).
+            if numLimbs < 1: numLimbs = 1.
+            else if numLimbs > maxLimbs: numLimbs = maxLimbs.
+            self reset-from-numlimbs from oldnumlimbs to numLimbs.
+            push "numlimbs from $oldnumlimbs to $numLimbs" onto pastevolutions.
+        }
+        if (controller get-mnumSegments) && (random[1.0] < mutationrate) : {
+            oldnumsegments = numSegments.
+            numSegments = (oldnumsegments + (random[2] - 1)).
+            if numSegments < 2: numSegments = 2.
+            else if numSegments > maxSegments: numSegments = maxSegments.
+            self reset-from-numsegments from oldnumsegments to numSegments.
+            push "numsegments from $oldnumsegments to $numSegments" onto pastevolutions.
+        }
+        if (controller get-mampShifts) && (random[1.0] < mutationrate) : {
+            n = random[|ampShifts| - 1].
+            ampShifts{n} = random[2.0] - 1.0.
+            push "ampshifts" onto pastevolutions.
+        }
+        if (controller get-mphaseShifts) && (random[1.0] < mutationrate) : {
+            n = random[|phaseShifts| - 1].
+            phaseShifts{n} = random[6.3] - 3.15.
+            push "phaseshifts" onto pastevolutions.
+        }
+        if (controller get-mlimbLengths) && (random[1.0] < mutationrate) : {
+            n = random[|limbLengths| - 1].
+            limbLengths{n} = random[2.0] + .5.
+            push "limblengths" onto pastevolutions.
+        }
+        if (controller get-mwaveCompression) && (random[1.0] < mutationrate) : {
+            waveCompression = waveCompression + (random[1.0] - 0.5).
+            if waveCompression < -2.5: waveCompression = -2.5.
+            else if waveCompression > 2.5: waveCompression = 2.5.
+            push "wavecompression" onto pastevolutions.
+
+        }
+        #print "Mutation of $self done".
+
+    + to get-points with-q q(int) with-m m (int) with-t t (vector):
+        if (t::x>=0) && (t::y<=0) && (q==1): 
+        return ( (0, (self get-limb-length number 0) / 2, 0) ).
+        if (t::x>=0) && (t::y<=0) && (q==2):
+        return ( -1 * (0, (self get-limb-length number m) / 2, 0)).
+        if (t::x>=0) && (t::y<=0) && (q==3):
+        return ( (0, (self get-limb-length number ( m )) / 2, 0)).
+
+        if (t::x<=0) && (t::y<=0) && (q==1): 
+        return ( (0, (self get-limb-length number 0) / 2, 0) ).
+        if (t::x<=0) && (t::y<=0) && (q==2):
+        return ( -1 * (0, (self get-limb-length number m) / 2, 0)).
+        if (t::x<=0) && (t::y<=0) && (q==3):
+        return ( (0, (self get-limb-length number ( m )) / 2, 0)).
+
+        if (t::x>=0) && (t::y>=0) && (q==1): 
+        return ( -1 * (0, (self get-limb-length number 0) / 2, 0) ).
+        if (t::x>=0) && (t::y>=0) && (q==2):
+        return ((0, (self get-limb-length number m) / 2, 0)).
+        if (t::x>=0) && (t::y>=0) && (q==3):
+        return ( -1 * (0, (self get-limb-length number ( m )) / 2, 0)).
+
+        if (t::x<=0) && (t::y>=0) && (q==1): 
+        return ( -1 * (0, (self get-limb-length number 0) / 2, 0) ).
+        if (t::x<=0) && (t::y>=0) && (q==2):
+        return ((0, (self get-limb-length number m) / 2, 0)).
+        if (t::x<=0) && (t::y>=0) && (q==3):
+        return ( -1 * (0, (self get-limb-length number ( m )) / 2, 0)).
+}
+
+MultiBody : Creature {
+    + variables:
+        bodyLink (object).
+        links (list).
+        joints (list).
+
+    + to get-root:
+        return bodyLink.
+
+    + to init-with genome g (object):
+        counter (int).
+        bodyShape (object).
+        width,length (float).
+        numLimbs,numSegments (int).
+        m,n (int).
+
+        self add-menu named "Send to Center" for-method "center".
+        width = (g get-width).
+        length = (g get-length).
+        numLimbs = (g get-numLimbs).
+        numSegments = (g get-numSegments).
+
+        # we want the limb volume to be constant at 16, but the dimensions can change.
+
+        bodyShape = new Shape.
+        bodyShape init-with-cube size (width, length, .4).
+
+        counter = 0.
+
+        links = (numLimbs*numSegments) new Links.
+        joints = (numLimbs*numSegments) new RevoluteJoints.
+
+        for n=0, n<numLimbs, n++: {
+            for m=0, m<numSegments, m++: {
+                links{ (n * numSegments) + m } set shape ( (new Shape) init-with-cube size (( sqrt(.16/ (g get-limb-length number m) ) ), (g get-limb-length number m), ( sqrt(.16/ (g get-limb-length number m) ) ))).
+            }
+        }
+
+        links set-color to random[(1.0, 1.0, 1.0)].
+
+        bodyLink = new Link.
+        bodyLink set shape bodyShape.
+
+        self register with-link bodyLink.
+
+        #g report.
+        for n=0, n<numLimbs, n++: {
+            joints{n * numSegments} link parent bodyLink to-child links{n * numSegments}
+            with-normal (0,0,1)
+            with-parent-point (bodyShape get-point-on-shape on-vector (g get-limbPoint number n))
+            with-child-point (g get-points with-q 1 with-m 0 with-t (g get-limbPoint number n)).
+            for m=1, m<numSegments, m++: {
+                joints{ (n * numSegments) + m } link parent links{ (n * numSegments) + m - 1 } to-child links{ (n * numSegments) + m}
+                with-normal (1,0,0)
+                with-parent-point (g get-points with-q 2 with-m m with-t (g get-limbPoint number n))
+                with-child-point (g get-points with-q 3 with-m ( m - 1 ) with-t (g get-limbPoint number n)).
+            }
+        }
+
+        # rotate the creature and move it to above the origin.
+
+        self rotate around-axis (1, 0, 0) by 1.57.
+
+        joints set-double-spring with-strength 200 with-max 0.6 with-min -0.6.
+        joints set-strength-limit to 250.
+
+        self enable-self-collisions.
+
+        # to center the object, we set the X and Z components to 0, but not
+        # the Y, otherwise we would push the walker into the ground
+
+    + to center:
+        currentLocation (vector).
+
+        currentLocation = (self get-location).
+        self move to (0, currentLocation::y, 0).
+
+        # The following four method allow external objects to manipulate 
+        # the torque values of the links.
+
+    + to set-joint-velocity number jointNum (int) to value (float):
+        joints{jointNum} set-joint-velocity to value.
+}
