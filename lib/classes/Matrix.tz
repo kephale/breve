@@ -90,6 +90,17 @@ Matrix : Matrix2D (aka Matrices2D) {
 
 		return matrix2DSet(matrixPointer, x, y, value).
 
+	 + to randomize:
+	        x, y (int).
+
+		for x = 0, x < xDim, x++: {
+		  for y = 0, y < yDim, y++: {
+		    matrix2DSet(matrixPointer, x, y, random[1.0]).
+		  }
+		}
+		
+		return self.
+
 	+ section "Matrix Match Methods"
 	
 	+ to get-absolute-sum:
@@ -257,6 +268,26 @@ Matrix : Matrix2D (aka Matrices2D) {
 		}
 		printf matrix2DGet(matrixPointer, i, j).
 		print "]".			   
+
+	+ to get-string:
+	        s (string).
+		x, y (int).
+		d (double).
+
+		s = "[".
+
+		for y = 0, y < yDim, y++: {
+			archiveList{ y } = {}.
+			s = "$s [".
+			for x = 0, x < xDim, x++: {
+				d = ( self get-value at-x x at-y y ).
+				s = "$s $d".
+			}
+			s = "$s]".
+		}
+		s = "$s]".
+
+		return s.		
 
 	+ to archive:
 		x, y (int).
