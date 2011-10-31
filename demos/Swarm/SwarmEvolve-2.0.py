@@ -282,7 +282,7 @@ class Swarm( breve.Control ):
 		self.skipFramesIfNecessaryMenu = self.addMenu( '''Skip Frames if Necessary''', 'setSkipFramesIfNecessaryMenu' )
 		self.drawEveryFrameMenu.check()
 		self.skipFramesIfNecessaryMenu.uncheck()
-		self.setBackgroundTextureImage( breve.createInstances( breve.Image, 1 ).load( 'images/clouds.png' ) )
+		#self.setBackgroundTextureImage( breve.createInstances( breve.Image, 1 ).load( 'images/clouds.png' ) )
 		self.offsetCamera( breve.vector( 5, 1.500000, 6 ) )
 		self.cameraHasBeenAimed = 0
 		self.maxZoomDelta = 0.050000

@@ -102,7 +102,7 @@ class Shape( breve.Abstract ):
 	def scale( self, scale ):
 		'''If the shape is <i>not</i> a sphere, scales the shape by the x, y  and z elements of scale.  If the shape <i>is</i> a sphere, scales  the shape by only the x element such that the shape always remains  spherical. <p> After the size has been changed, the instances announces a  "size-changed" notification.'''
 
-		breve.breveInternalFunctionFinder.scaleShape( self, self.shapePointer, scale )
+		breve.breveInternalFunctionFinder.shapeSetScale( self, self.shapePointer, scale )
 		self.lastScale = scale
 		self.announce( 'sizeChanged' )
 

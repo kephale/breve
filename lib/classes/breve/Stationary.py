@@ -41,7 +41,7 @@ class Stationary( breve.Real ):
 
 	def init( self ):
 		self.realWorldPointer = breve.breveInternalFunctionFinder.addStationary( self, self.controller.getGenericShape().getPointer(), breve.vector( 0, 0, 0 ), breve.matrix(  1, 0, 0, 0, 1, 0, 0, 0, 1 ) )
-		self.setTextureImage( self.controller.getStationaryTexture() )
+		#self.setTextureImage( self.controller.getStationaryTexture() )
 		self.setShape( self.controller.getGenericShape() )
 		return self
 
@@ -69,7 +69,7 @@ class Floor( breve.Stationary ):
 		self.setShape( self.shape )
 		self.setColor( breve.vector( 0.350000, 0.800000, 0.450000 ) )
 		self.catchShadows()
-		self.setTextureImage( breve.createInstances( breve.Image, 1 ).load( 'images/noise.png' ) )
+		#self.setTextureImage( breve.createInstances( breve.Image, 1 ).load( 'images/noise.png' ) )
 
 	def setSize( self, newSize ):
 		'''Changes the size of the floor to newSize.'''
