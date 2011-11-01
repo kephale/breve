@@ -347,6 +347,10 @@ class PushProgram( breve.Object ):
 			return '()'
 
 		return breve.breveInternalFunctionFinder.pushCodeGetString( self, self.codePointer )
+	
+	def __str__( self ):
+		'''Returns the string representation of this Push program.'''
+		return self.getString()
 
 	def getTopLevelDifference( self, otherProgram ):
 		'''Determines the top level difference between this program and otherProgram. This is calculated by comparing each element of the program against  the corresponding element of otherProgram, with every mismatch counting  as one point of difference.  Sublists are not considered; each element  in the top level list is treated as an atomic element. <P> This method is well suited for comparing lists produced as output of  push programs.  Because it does not consider sublists or order, it is  not well suited for determining the true level of similarity between two programs as one might with to do with evolved code.  For that type of functionality, see the method METHOD(get-discrepancy).'''
