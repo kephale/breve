@@ -18,7 +18,7 @@ AC_ARG_ENABLE([lisp],
 AC_ARG_ENABLE([scheme],
 		[--enable-scheme	Link against Guile library (for development only)], scheme="$enableval")
 AC_ARG_ENABLE([python], 	
-		[--enable-python		Build without support for Python], python="$enableval")
+		[--enable-python		Build with support for Python], python="$enableval")
 AC_ARG_ENABLE([osxcompat104], 
 		[--enable-osxcompat104	Build on Mac OS X 10.5 to produce 10.4 compatible build], osxcompat104="$enableval")
 
@@ -161,13 +161,16 @@ if test "x$python" = "xyes"; then
 
 	# Python can come in so many exciting flavors, with different library names!
 
-	AC_CHECK_LIB([python],    [Py_Initialize], [LIBS="$LIBS -lpython"    PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python"])
-	AC_CHECK_LIB([python2.3], [Py_Initialize], [LIBS="$LIBS -lpython2.3" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.3"])
-	AC_CHECK_LIB([python23],  [Py_Initialize], [LIBS="$LIBS -lpython2.3" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.3"])
-	AC_CHECK_LIB([python2.4], [Py_Initialize], [LIBS="$LIBS -lpython2.4" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.4"])
-	AC_CHECK_LIB([python24],  [Py_Initialize], [LIBS="$LIBS -lpython2.4" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.4"])
-	AC_CHECK_LIB([python2.5], [Py_Initialize], [LIBS="$LIBS -lpython2.5" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.5"])
-	AC_CHECK_LIB([python25],  [Py_Initialize], [LIBS="$LIBS -lpython2.5" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.5"])
+	dnl AC_CHECK_LIB([python],    [Py_Initialize], [LIBS="$LIBS -lpython"    PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python"])
+	dnl AC_CHECK_LIB([python2.3], [Py_Initialize], [LIBS="$LIBS -lpython2.3" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.3"])
+	dnl AC_CHECK_LIB([python23],  [Py_Initialize], [LIBS="$LIBS -lpython2.3" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.3"])
+	dnl AC_CHECK_LIB([python2.4], [Py_Initialize], [LIBS="$LIBS -lpython2.4" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.4"])
+	dnl AC_CHECK_LIB([python24],  [Py_Initialize], [LIBS="$LIBS -lpython2.4" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.4"])
+	dnl AC_CHECK_LIB([python2.5], [Py_Initialize], [LIBS="$LIBS -lpython2.5" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.5"])
+	dnl AC_CHECK_LIB([python25],  [Py_Initialize], [LIBS="$LIBS -lpython2.5" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.5"])
+	dnl AC_CHECK_LIB([python2.6], [Py_Initialize], [LIBS="$LIBS -lpython2.6" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.6"])
+	dnl AC_CHECK_LIB([python26],  [Py_Initialize], [LIBS="$LIBS -lpython2.6" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.6"])
+	AC_CHECK_LIB([python2.7], [main], [LIBS="$LIBS -lpython2.7" PYTHONINCLUDE="$PYTHONINCLUDE -I${PYTHONROOT}/include/python2.7"])
 
 	if test "x$PYTHONINCLUDE" != "x"; then
 		AC_DEFINE( [HAVE_LIBPYTHON], [], [Have the required Python libraries] )
@@ -418,7 +421,7 @@ _old_libs=${LIBS}
 # system libraries have alreay been set to allow dynamic linking.
 # 
 
-LIBS="$BEGIN_STATIC $LIBS"
+LIBS="$BEGIN_STATIC $LIBS -lutil"
 
 AC_CONFIG_FILES([Makefile
 		 plugins/slDigitizerPlugin/Makefile
