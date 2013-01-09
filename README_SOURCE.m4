@@ -1,4 +1,3 @@
-
                   - breve source code release - version _VERSION_ -
                          http://www.spiderland.org/breve
                               jk [at] spiderland.org
@@ -28,6 +27,12 @@ easy-to-use scripting language.
   Example: 
 
 	export LDFLAGS='-L/opt/local/lib' CPPFLAGS='-I/opt/local/include'
+	
+*Note for Homebrew users* 
+
+  Your flags are:
+
+	export LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include'
 
 3) ./configure
 
